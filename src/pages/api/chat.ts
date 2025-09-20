@@ -42,14 +42,17 @@ export default async function handler(
 		const messages = [
 			{
 				role: "system" as const,
-				content: "Look at the image and give me a JSON object in the format {red: boolean, black: boolean} where true means there is a number shown on the red diamond and black is for the black diamond.",
+				content:
+					"Look at the image and identify the numbers on the red and black diamonds. Return a JSON object with the format {red: amount, black: amount} where amount is the number shown on each diamond. If there is no number, use 0.",
 			},
 			{
 				role: "user" as const,
 				content: [
 					{
 						type: "image" as const,
-						image: image.startsWith("data:") ? image : `data:image/jpeg;base64,${image}`,
+						image: image.startsWith("data:")
+							? image
+							: `data:image/jpeg;base64,${image}`,
 					},
 				],
 			},
