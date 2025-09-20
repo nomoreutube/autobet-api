@@ -63,10 +63,14 @@ export default async function handler(
 			messages,
 		});
 
+		console.log("AI response text:", text);
+
 		try {
 			const parsedResponse = JSON.parse(text);
+			console.log("Parsed JSON response:", parsedResponse);
 			res.status(200).json(parsedResponse);
 		} catch {
+			console.log("Failed to parse JSON, returning as message:", text);
 			res.status(200).json({ message: text });
 		}
 	} catch (error) {
