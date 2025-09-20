@@ -39,19 +39,17 @@ export default async function handler(
 			apiKey: process.env.OPENROUTER_API_KEY,
 		});
 
-		const messages: any[] = [
+		const messages = [
 			{
-				role: "system",
+				role: "system" as const,
 				content: "Look at the image and give me a JSON object in the format {red: boolean, black: boolean} where true means there is a number shown on the red diamond and black is for the black diamond.",
 			},
 			{
-				role: "user",
+				role: "user" as const,
 				content: [
 					{
-						type: "image_url",
-						image_url: {
-							url: image.startsWith("data:") ? image : `data:image/jpeg;base64,${image}`,
-						},
+						type: "image" as const,
+						image: image.startsWith("data:") ? image : `data:image/jpeg;base64,${image}`,
 					},
 				],
 			},
@@ -65,7 +63,7 @@ export default async function handler(
 		try {
 			const parsedResponse = JSON.parse(text);
 			res.status(200).json(parsedResponse);
-		} catch (parseError) {
+		} catch {
 			res.status(200).json({ message: text });
 		}
 	} catch (error) {
