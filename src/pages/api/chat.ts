@@ -1,9 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { generateText } from "ai";
+import { generateText, Output } from "ai";
+import { z } from "zod";
 
 type ChatResponse = {
-	message?: string;
+	red?: number;
+	black?: number;
 	error?: string;
 };
 
@@ -58,21 +60,19 @@ export default async function handler(
 			},
 		];
 
-		const { text } = await generateText({
+		const { experimental_output } = await generateText({
 			model: openrouter("openai/gpt-4.1"),
 			messages,
+			experimental_output: Output.object({
+				schema: z.object({
+					red: z.number(),
+					black: z.number(),
+				}),
+			}),
 		});
 
-		console.log("AI response text:", text);
-
-		try {
-			const parsedResponse = JSON.parse(text);
-			console.log("Parsed JSON response:", parsedResponse);
-			res.status(200).json(parsedResponse);
-		} catch {
-			console.log("Failed to parse JSON, returning as message:", text);
-			res.status(200).json({ message: text });
-		}
+		console.log("AI response:", experimental_output);
+		res.status(200).json(experimental_output);
 	} catch (error) {
 		console.error("Chat API error:", error);
 		res.status(500).json({ error: "Failed to generate response" });
