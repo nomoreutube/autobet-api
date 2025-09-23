@@ -59,7 +59,7 @@ export default async function handler(
 		];
 
 		const { text } = await generateText({
-			model: openrouter("openai/gpt-4.1"),
+			model: openrouter("openai/gpt-4.1-nano"),
 			messages,
 		});
 
