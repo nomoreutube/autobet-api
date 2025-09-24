@@ -6,6 +6,7 @@ import PocketBaseSingleton from "../../lib/pocketbase";
 
 type ConnectionResponse = {
 	needRefresh?: boolean;
+	balance?: number;
 	error?: string;
 };
 
@@ -42,11 +43,21 @@ export default async function handler(
 	}
 
 	try {
+		// Get PocketBase instance
+		const pb = await PocketBaseSingleton.getInstance();
+
 		// Check if user exists
 		const userExists = await PocketBaseSingleton.checkUserExists(id);
 		if (!userExists) {
 			return res.status(404).json({ error: "User not found" });
 		}
+
+		// Atomically increment balance by 1
+		const userRecord = await pb.collection("autobet").update(id, {
+			"balance+": 1,
+		});
+
+		const newBalance = userRecord.balance;
 
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
@@ -82,7 +93,10 @@ export default async function handler(
 		});
 
 		console.log("Connection check AI response:", experimental_output);
-		res.status(200).json(experimental_output);
+		res.status(200).json({
+			...experimental_output,
+			balance: newBalance,
+		});
 	} catch (error) {
 		console.error("Connection check API error:", error);
 		res.status(500).json({ error: "Failed to check connection status" });
