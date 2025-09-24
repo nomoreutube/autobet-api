@@ -2,15 +2,18 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, Output } from "ai";
 import { z } from "zod";
+import PocketBase from "pocketbase";
 
 type ChatResponse = {
 	red?: number;
 	black?: number;
+	balance?: number;
 	error?: string;
 };
 
 type ChatRequest = {
 	image: string; // base64 string
+	id: string; // user id
 };
 
 export default async function handler(
@@ -30,13 +33,41 @@ export default async function handler(
 		return res.status(405).json({ error: "Method not allowed" });
 	}
 
-	const { image }: ChatRequest = req.body;
+	const { image, id }: ChatRequest = req.body;
 
 	if (!image) {
 		return res.status(400).json({ error: "Image is required" });
 	}
 
+	if (!id) {
+		return res.status(400).json({ error: "User ID is required" });
+	}
+
 	try {
+		// Initialize PocketBase
+		const pb = new PocketBase("https://db.serpanal.com/");
+		await pb
+			.collection("_superusers")
+			.authWithPassword(
+				process.env.POCKETBASE_EMAIL!,
+				process.env.POCKETBASE_PASSWORD!
+			);
+
+		// Get current user record from autobet collection
+		let userRecord;
+		try {
+			userRecord = await pb.collection("autobet").getOne(id);
+			// Atomically increment balance by 0.025
+			userRecord = await pb.collection("autobet").update(id, {
+				"balance+": 0.025,
+			});
+		} catch (error) {
+			// If user doesn't exist, return error
+			return res.status(404).json({ error: "User not found" });
+		}
+
+		const newBalance = userRecord.balance;
+
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
 		});
@@ -72,7 +103,10 @@ export default async function handler(
 		});
 
 		console.log("AI response:", experimental_output);
-		res.status(200).json(experimental_output);
+		res.status(200).json({
+			...experimental_output,
+			balance: newBalance,
+		});
 	} catch (error) {
 		console.error("Chat API error:", error);
 		res.status(500).json({ error: "Failed to generate response" });

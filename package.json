@@ -12,6 +12,7 @@
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "ai": "^5.0.47",
     "next": "15.5.3",
+    "pocketbase": "^0.26.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "zod": "^4.1.9"
