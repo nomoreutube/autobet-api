@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import PocketBase from "pocketbase";
+import PocketBaseSingleton from "../../lib/pocketbase";
 
 type BalanceResponse = {
 	balance?: number;
@@ -30,14 +30,14 @@ export default async function handler(
 	}
 
 	try {
-		// Initialize PocketBase
-		const pb = new PocketBase("https://db.serpanal.com/");
-		await pb
-			.collection("_superusers")
-			.authWithPassword(
-				process.env.POCKETBASE_EMAIL!,
-				process.env.POCKETBASE_PASSWORD!
-			);
+		// Get PocketBase instance
+		const pb = await PocketBaseSingleton.getInstance();
+
+		// Check if user exists and get balance
+		const userExists = await PocketBaseSingleton.checkUserExists(id);
+		if (!userExists) {
+			return res.status(404).json({ error: "User not found" });
+		}
 
 		// Get current user record from autobet collection
 		const userRecord = await pb.collection("autobet").getOne(id);
