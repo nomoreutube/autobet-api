@@ -53,9 +53,15 @@ export default async function handler(
 			return res.status(404).json({ error: "User not found" });
 		}
 
-		// Atomically increment balance by 1
+		// Get current user record to check balance
+		const currentUser = await pb.collection("autobet").getOne(id);
+		if (currentUser.balance <= 0) {
+			return res.status(400).json({ error: "Insufficient balance" });
+		}
+
+		// Atomically decrement balance by 1
 		const userRecord = await pb.collection("autobet").update(id, {
-			"balance+": 1,
+			"balance+": -1,
 		});
 
 		const newBalance = userRecord.balance;
