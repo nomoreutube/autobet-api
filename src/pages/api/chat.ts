@@ -59,7 +59,7 @@ export default async function handler(
 			userRecord = await pb.collection("autobet").getOne(id);
 			// Atomically increment balance by 0.025
 			userRecord = await pb.collection("autobet").update(id, {
-				"balance+": 0.025,
+				"balance+": 1,
 			});
 		} catch (error) {
 			// If user doesn't exist, return error
