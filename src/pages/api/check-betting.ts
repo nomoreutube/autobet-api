@@ -55,8 +55,33 @@ export default async function handler(
 		const messages = [
 			{
 				role: "system" as const,
-				content:
-					"Look at the image and check for betting availability. Return a JSON object with the format {canBet: boolean} where canBet is true if EITHER: 1) Timer shows 12 seconds or more AND there is 'start betting' text visible, OR 2) Text shows 'preparing' with timer at 0. Return false for all other conditions.",
+				content: `You are analyzing a betting interface screenshot to determine if betting is currently available.
+
+TASK: Examine the image carefully and return a JSON object with the format {canBet: boolean}.
+
+SET canBet to TRUE if you observe EITHER of these scenarios:
+
+SCENARIO 1 - Active Betting Window:
+- A countdown timer is visible showing 12 seconds or MORE remaining
+- AND you can see text indicating "start betting", "bet now", or similar betting call-to-action
+- The interface appears ready for user interaction
+
+SCENARIO 2 - Preparing Phase:
+- Text shows "preparing", "getting ready", or similar preparation messages
+- AND the timer shows 0 seconds or is not visible
+- This indicates the next betting round is about to begin
+
+SET canBet to FALSE for all other conditions including:
+- Timer shows less than 12 seconds (insufficient time to place bets)
+- No betting-related text is visible
+- Interface appears disabled or in a waiting state
+- Timer is counting down but no betting interface is shown
+- Any error states or loading screens
+- Show Stop Betting text
+
+Focus on: countdown timers, betting buttons/text, preparation messages, and overall interface state.
+
+Return only the JSON object with no additional text.`,
 			},
 			{
 				role: "user" as const,
@@ -72,7 +97,7 @@ export default async function handler(
 		];
 
 		const { experimental_output } = await generateText({
-			model: openrouter("openai/gpt-4.1-mini"),
+			model: openrouter("openai/gpt-4.1"),
 			messages,
 			experimental_output: Output.object({
 				schema: z.object({
