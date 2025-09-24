@@ -73,7 +73,7 @@ TASK: Examine the image carefully and return a JSON object with the format {canB
 SET canBet to TRUE if you observe EITHER of these scenarios:
 
 SCENARIO 1 - Active Betting Window:
-- A countdown timer is visible showing 12 seconds or MORE remaining
+- A countdown timer is visible showing 14 seconds or MORE remaining
 - AND you can see text indicating "start betting", "bet now", or similar betting call-to-action
 - The interface appears ready for user interaction
 
