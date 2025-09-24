@@ -5,7 +5,8 @@ import { z } from "zod";
 import PocketBaseSingleton from "../../lib/pocketbase";
 
 type BettingResponse = {
-	canBet?: boolean;
+	startBetting?: boolean;
+	timer?: number;
 	balance?: number;
 	error?: string;
 };
@@ -72,31 +73,21 @@ export default async function handler(
 		const messages = [
 			{
 				role: "system" as const,
-				content: `You are analyzing a betting interface screenshot to determine if betting is currently available.
+				content: `You are analyzing a betting interface screenshot to extract betting status and timer information.
 
-TASK: Examine the image carefully and return a JSON object with the format {canBet: boolean}.
+TASK: Examine the image carefully and return a JSON object with the format {startBetting: boolean, timer: number}.
 
-SET canBet to TRUE if you observe EITHER of these scenarios:
+SIMPLE RULES:
 
-SCENARIO 1 - Active Betting Window:
-- A countdown timer is visible showing 14 seconds or MORE remaining
-- AND you can see text indicating "start betting", "bet now", or similar betting call-to-action
-- The interface appears ready for user interaction
+IF "Start Betting" text is visible anywhere in the interface:
+- Set startBetting to TRUE
+- Find and return the actual timer value (number of seconds shown)
 
-SCENARIO 2 - Preparing Phase:
-- Text shows "preparing", "getting ready", or similar preparation messages
-- AND the timer shows 0 seconds or is not visible
-- This indicates the next betting round is about to begin
+IF "Start Betting" text is NOT visible:
+- Set startBetting to FALSE
+- Set timer to 0
 
-SET canBet to FALSE for all other conditions including:
-- Timer shows less than 12 seconds (insufficient time to place bets)
-- No betting-related text is visible
-- Interface appears disabled or in a waiting state
-- Timer is counting down but no betting interface is shown
-- Any error states or loading screens
-- Show Stop Betting text
-
-Focus on: countdown timers, betting buttons/text, preparation messages, and overall interface state.
+FOCUS ON: Look for "Start Betting" text first, then extract the timer number if betting text exists.
 
 Return only the JSON object with no additional text.`,
 			},
@@ -118,7 +109,8 @@ Return only the JSON object with no additional text.`,
 			messages,
 			experimental_output: Output.object({
 				schema: z.object({
-					canBet: z.boolean(),
+					startBetting: z.boolean(),
+					timer: z.number(),
 				}),
 			}),
 		});
