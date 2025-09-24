@@ -7,6 +7,8 @@ class PocketBaseSingleton {
 	static async getInstance(): Promise<PocketBase> {
 		if (!this.instance) {
 			this.instance = new PocketBase("https://db.serpanal.com/");
+			// Disable auto cancellation to prevent AbortError
+			this.instance.autoCancellation(false);
 		}
 
 		// Authenticate if not already authenticated or if token expired
