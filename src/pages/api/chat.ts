@@ -61,7 +61,7 @@ export default async function handler(
 
 		// Atomically decrement balance by 1
 		const userRecord = await pb.collection("autobet").update(id, {
-			"balance+": -1,
+			"balance+": -3,
 		});
 
 		const newBalance = userRecord.balance;
@@ -73,16 +73,7 @@ export default async function handler(
 		const messages = [
 			{
 				role: "system" as const,
-				content: `Identify the numbers on the red and black diamonds in this image.
-
-RULES:
-- Numbers are ONLY: 0, 10, 20, 30, 40, or 50
-- Ignore letters like 'S' - use 0 instead
-- Ignore chip shadows or reflections
-- Focus only on clear numbers on diamond surfaces
-- If unclear, use 0
-
-Return JSON format: {"red": number, "black": number}`,
+				content: `Identify the number on the image and return, if no number return as 0, max number will be 100`,
 			},
 			{
 				role: "user" as const,
@@ -102,27 +93,12 @@ Return JSON format: {"red": number, "black": number}`,
 			messages,
 			experimental_output: Output.object({
 				schema: z.object({
-					red: z.number(),
-					black: z.number(),
+					number: z.number(),
 				}),
 			}),
 		});
 
 		console.log("AI response:", experimental_output);
-
-		// Validate response
-		if (
-			!experimental_output ||
-			typeof experimental_output.red === "undefined" ||
-			typeof experimental_output.black === "undefined"
-		) {
-			console.error("Invalid AI response, using fallback values");
-			return res.status(200).json({
-				red: 0,
-				black: 0,
-				balance: newBalance,
-			});
-		}
 
 		res.status(200).json({
 			...experimental_output,
