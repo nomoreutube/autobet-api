@@ -73,8 +73,16 @@ export default async function handler(
 		const messages = [
 			{
 				role: "system" as const,
-				content:
-					"Look at the image and identify the numbers on the red and black diamonds. Return a JSON object with the format {red: amount, black: amount} where amount is the number shown on each diamond. IMPORTANT: Only identify actual numbers (digits 0-9). Do NOT identify letters like 'S' as numbers - if you see an 'S' or any letter, use 0. The image may contain shadows or reflections of chips above or behind the diamonds showing letters like 'S' or other symbols - completely ignore these chip shadows and only focus on the clear, visible numbers directly on the diamond surfaces themselves. If the digits are unclear but you can tell the number is at least 10 or higher (like 10, 15, 20, etc.), provide your best estimate of the actual number. If there is no number or you cannot determine any digits, use 0.",
+				content: `Identify the numbers on the red and black diamonds in this image.
+
+RULES:
+- Numbers are ONLY: 0, 10, 20, 30, 40, or 50
+- Ignore letters like 'S' - use 0 instead
+- Ignore chip shadows or reflections
+- Focus only on clear numbers on diamond surfaces
+- If unclear, use 0
+
+Return JSON format: {"red": number, "black": number}`,
 			},
 			{
 				role: "user" as const,
@@ -101,6 +109,21 @@ export default async function handler(
 		});
 
 		console.log("AI response:", experimental_output);
+
+		// Validate response
+		if (
+			!experimental_output ||
+			typeof experimental_output.red === "undefined" ||
+			typeof experimental_output.black === "undefined"
+		) {
+			console.error("Invalid AI response, using fallback values");
+			return res.status(200).json({
+				red: 0,
+				black: 0,
+				balance: newBalance,
+			});
+		}
+
 		res.status(200).json({
 			...experimental_output,
 			balance: newBalance,
