@@ -89,7 +89,8 @@ export default async function handler(
 		];
 
 		const { experimental_output } = await generateText({
-			model: openrouter("openai/gpt-4.1-nano"),
+			// model: openrouter("openai/gpt-4.1-nano"),
+			model: openrouter("google/gemma-3-4b-it"),
 			messages,
 			experimental_output: Output.object({
 				schema: z.object({
