@@ -42,7 +42,7 @@ function getCurrentTimerState(): { startBetting: boolean; timer: number } | null
 	// Calculate position in current 42-second cycle
 	const cyclePosition = elapsed % TOTAL_CYCLE;
 
-	// During betting phase (0-15s in cycle)
+	// During betting phase (0-15s in cycle) - show betting countdown
 	if (cyclePosition < BETTING_DURATION) {
 		return {
 			startBetting: true,
@@ -60,8 +60,10 @@ function getCurrentTimerState(): { startBetting: boolean; timer: number } | null
 function startBettingTimer(initialTimer: number, requestStartTime: number): void {
 	// Account for the time already elapsed based on the timer value received
 	// AND the processing time from request start to now
+	// PLUS an additional 1-second buffer for timing discrepancies
 	const processingTime = Date.now() - requestStartTime;
-	const elapsedTime = (15 - initialTimer) * 1000 + processingTime;
+	const additionalBuffer = 1000; // 1 second buffer
+	const elapsedTime = (15 - initialTimer) * 1000 + processingTime + additionalBuffer;
 	const adjustedStartTime = Date.now() - elapsedTime;
 
 	globalTimer = {
