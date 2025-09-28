@@ -4,6 +4,66 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import PocketBaseSingleton from "../../lib/pocketbase";
 
+// Timer management for betting cycles
+interface BettingTimer {
+	startTime: number;
+	phase: "betting" | "waiting";
+	bettingDuration: number; // 15 seconds
+	waitingDuration: number; // 27 seconds
+}
+
+// Global shared timer for all users
+let globalTimer: BettingTimer | null = null;
+
+const BETTING_DURATION = 15 * 1000; // 15 seconds in ms
+const WAITING_DURATION = 27 * 1000; // 27 seconds in ms
+const TOTAL_CYCLE = BETTING_DURATION + WAITING_DURATION; // 42 seconds
+const TIMER_EXPIRY = 60 * 60 * 1000; // 1 hour in ms
+
+// Helper functions for timer management
+function getCurrentTimerState(): { startBetting: boolean; timer: number } | null {
+	if (!globalTimer) return null;
+
+	const now = Date.now();
+	const elapsed = now - globalTimer.startTime;
+
+	// If timer has expired (1 hour), remove timer for time accuracy
+	if (elapsed >= TIMER_EXPIRY) {
+		globalTimer = null;
+		return null;
+	}
+
+	// Calculate position in current 42-second cycle
+	const cyclePosition = elapsed % TOTAL_CYCLE;
+
+	// During betting phase (0-15s in cycle)
+	if (cyclePosition < BETTING_DURATION) {
+		return {
+			startBetting: true,
+			timer: Math.ceil((BETTING_DURATION - cyclePosition) / 1000),
+		};
+	}
+
+	// During waiting phase (15s-42s in cycle)
+	return {
+		startBetting: false,
+		timer: 0,
+	};
+}
+
+function startBettingTimer(initialTimer: number): void {
+	// Account for the time already elapsed based on the timer value received
+	const elapsedTime = (15 - initialTimer) * 1000;
+	const adjustedStartTime = Date.now() - elapsedTime;
+
+	globalTimer = {
+		startTime: adjustedStartTime,
+		phase: "betting",
+		bettingDuration: BETTING_DURATION,
+		waitingDuration: WAITING_DURATION,
+	};
+}
+
 type BettingResponse = {
 	startBetting?: boolean;
 	timer?: number;
@@ -61,10 +121,20 @@ export default async function handler(
 
 		// Atomically decrement balance by 1
 		const userRecord = await pb.collection("autobet").update(id, {
-			"balance+": -3,
+			"balance+": -1,
 		});
 
 		const newBalance = userRecord.balance;
+
+		// Check if there's an active global timer first
+		const existingTimer = getCurrentTimerState();
+		if (existingTimer) {
+			// Return current timer state without AI call but still charge balance
+			return res.status(200).json({
+				...existingTimer,
+				balance: newBalance,
+			});
+		}
 
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
@@ -116,6 +186,12 @@ Return only the JSON object with no additional text.`,
 		});
 
 		console.log("Betting check AI response:", experimental_output);
+
+		// If AI detected start betting, start the global timer
+		if (experimental_output.startBetting && experimental_output.timer > 0) {
+			startBettingTimer(experimental_output.timer);
+		}
+
 		res.status(200).json({
 			...experimental_output,
 			balance: newBalance,
