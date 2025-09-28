@@ -57,9 +57,11 @@ function getCurrentTimerState(): { startBetting: boolean; timer: number } | null
 	};
 }
 
-function startBettingTimer(initialTimer: number): void {
+function startBettingTimer(initialTimer: number, requestStartTime: number): void {
 	// Account for the time already elapsed based on the timer value received
-	const elapsedTime = (15 - initialTimer) * 1000;
+	// AND the processing time from request start to now
+	const processingTime = Date.now() - requestStartTime;
+	const elapsedTime = (15 - initialTimer) * 1000 + processingTime;
 	const adjustedStartTime = Date.now() - elapsedTime;
 
 	globalTimer = {
@@ -109,6 +111,8 @@ export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse<BettingResponse>
 ) {
+	const requestStartTime = Date.now(); // Capture when request started
+
 	res.setHeader("Content-Type", "application/json");
 	res.setHeader("Access-Control-Allow-Origin", "*");
 	res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -219,8 +223,9 @@ Return only the JSON object with no additional text.`,
 
 		// If AI detected start betting, start the global timer
 		if (experimental_output.startBetting && experimental_output.timer > 0) {
-			console.log(`Starting global timer with AI detected timer: ${experimental_output.timer}`);
-			startBettingTimer(experimental_output.timer);
+			const processingTime = Date.now() - requestStartTime;
+			console.log(`Starting global timer with AI detected timer: ${experimental_output.timer}, processing time: ${processingTime}ms`);
+			startBettingTimer(experimental_output.timer, requestStartTime);
 		}
 
 		res.status(200).json({
