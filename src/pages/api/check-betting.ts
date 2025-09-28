@@ -105,7 +105,7 @@ Return only the JSON object with no additional text.`,
 		];
 
 		const { experimental_output } = await generateText({
-			model: openrouter("openai/gpt-5-mini"),
+			model: openrouter("openai/gpt-4"),
 			messages,
 			experimental_output: Output.object({
 				schema: z.object({
