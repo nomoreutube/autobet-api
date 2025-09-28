@@ -14,6 +14,7 @@ interface BettingTimer {
 
 // Global shared timer for all users
 let globalTimer: BettingTimer | null = null;
+let logInterval: NodeJS.Timeout | null = null;
 
 const BETTING_DURATION = 15 * 1000; // 15 seconds in ms
 const WAITING_DURATION = 27 * 1000; // 27 seconds in ms
@@ -30,6 +31,11 @@ function getCurrentTimerState(): { startBetting: boolean; timer: number } | null
 	// If timer has expired (1 hour), remove timer for time accuracy
 	if (elapsed >= TIMER_EXPIRY) {
 		globalTimer = null;
+		if (logInterval) {
+			clearInterval(logInterval);
+			logInterval = null;
+			console.log("Global timer expired after 1 hour - logging stopped");
+		}
 		return null;
 	}
 
@@ -62,6 +68,29 @@ function startBettingTimer(initialTimer: number): void {
 		bettingDuration: BETTING_DURATION,
 		waitingDuration: WAITING_DURATION,
 	};
+
+	// Start logging timer state every second
+	if (logInterval) {
+		clearInterval(logInterval);
+	}
+
+	logInterval = setInterval(() => {
+		const currentState = getCurrentTimerState();
+		if (currentState) {
+			const now = Date.now();
+			const elapsed = now - globalTimer!.startTime;
+			const cyclePosition = elapsed % TOTAL_CYCLE;
+			const cycleNumber = Math.floor(elapsed / TOTAL_CYCLE) + 1;
+
+			console.log(`Cycle ${cycleNumber} - Position: ${Math.floor(cyclePosition/1000)}s - startBetting: ${currentState.startBetting}, timer: ${currentState.timer}`);
+		} else {
+			console.log("Global timer no longer active - stopping logs");
+			if (logInterval) {
+				clearInterval(logInterval);
+				logInterval = null;
+			}
+		}
+	}, 1000);
 }
 
 type BettingResponse = {
@@ -129,6 +158,7 @@ export default async function handler(
 		// Check if there's an active global timer first
 		const existingTimer = getCurrentTimerState();
 		if (existingTimer) {
+			console.log(`Global timer active - startBetting: ${existingTimer.startBetting}, timer: ${existingTimer.timer}, user: ${id}`);
 			// Return current timer state without AI call but still charge balance
 			return res.status(200).json({
 				...existingTimer,
@@ -189,6 +219,7 @@ Return only the JSON object with no additional text.`,
 
 		// If AI detected start betting, start the global timer
 		if (experimental_output.startBetting && experimental_output.timer > 0) {
+			console.log(`Starting global timer with AI detected timer: ${experimental_output.timer}`);
 			startBettingTimer(experimental_output.timer);
 		}
 
