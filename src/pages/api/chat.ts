@@ -3,6 +3,7 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import PocketBaseSingleton from "../../lib/pocketbase";
+import { trackBalanceForTimerReset } from "./check-betting";
 
 type ChatResponse = {
 	red?: number;
@@ -65,6 +66,9 @@ export default async function handler(
 		});
 
 		const newBalance = userRecord.balance;
+
+		// Track balance for timer reset logic
+		trackBalanceForTimerReset(newBalance);
 
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,

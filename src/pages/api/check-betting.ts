@@ -16,6 +16,9 @@ interface BettingTimer {
 let globalTimer: BettingTimer | null = null;
 let logInterval: NodeJS.Timeout | null = null;
 
+// Track consecutive hands where balance != 100
+let consecutiveNon100Count = 0;
+
 const BETTING_DURATION = 15 * 1000; // 15 seconds in ms
 const WAITING_DURATION = 27 * 1000; // 27 seconds in ms
 const TOTAL_CYCLE = BETTING_DURATION + WAITING_DURATION; // 42 seconds
@@ -95,6 +98,33 @@ function startBettingTimer(initialTimer: number, requestStartTime: number): void
 			}
 		}
 	}, 1000);
+}
+
+// Function to reset the global timer
+export function resetGlobalTimer(): void {
+	globalTimer = null;
+	consecutiveNon100Count = 0;
+	if (logInterval) {
+		clearInterval(logInterval);
+		logInterval = null;
+		console.log("Global timer reset due to 3 consecutive non-100 balance hands");
+	}
+}
+
+// Function to track consecutive non-100 balance hands
+export function trackBalanceForTimerReset(balance: number): void {
+	if (balance !== 100) {
+		consecutiveNon100Count++;
+		console.log(`Non-100 balance detected: ${balance}, consecutive count: ${consecutiveNon100Count}`);
+
+		if (consecutiveNon100Count >= 3) {
+			console.log("3 consecutive non-100 balance hands detected - resetting timer");
+			resetGlobalTimer();
+		}
+	} else {
+		// Reset counter if balance is 100
+		consecutiveNon100Count = 0;
+	}
 }
 
 type BettingResponse = {
