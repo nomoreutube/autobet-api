@@ -37,7 +37,7 @@ class PocketBaseSingleton {
 			const pb = await this.getInstance();
 			await pb.collection("autobet").getOne(id);
 			return true;
-		} catch (error) {
+		} catch {
 			return false;
 		}
 	}
