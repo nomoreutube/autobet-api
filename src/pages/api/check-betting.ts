@@ -14,6 +14,7 @@ type BettingResponse = {
 type BettingRequest = {
 	image: string; // base64 string
 	id: string; // user id
+	screenshotTime?: number; // timestamp when screenshot was taken
 };
 
 export default async function handler(
@@ -33,7 +34,7 @@ export default async function handler(
 		return res.status(405).json({ error: "Method not allowed" });
 	}
 
-	const { image, id }: BettingRequest = req.body;
+	const { image, id, screenshotTime }: BettingRequest = req.body;
 
 	if (!image) {
 		return res.status(400).json({ error: "Image is required" });
@@ -70,6 +71,11 @@ export default async function handler(
 			apiKey: process.env.OPENROUTER_API_KEY,
 		});
 
+		const currentTime = Date.now();
+		const timeSinceScreenshot = screenshotTime
+			? (currentTime - screenshotTime) / 1000
+			: 0;
+
 		const messages = [
 			{
 				role: "system" as const,
@@ -77,17 +83,21 @@ export default async function handler(
 
 TASK: Examine the image carefully and return a JSON object with the format {startBetting: boolean, timer: number}.
 
-SIMPLE RULES:
+CRITICAL RULES:
 
-IF "Start Betting" text is visible anywhere in the interface:
-- Set startBetting to TRUE
-- Find and return the actual timer value (number of seconds shown)
+1. BOTH conditions must be met for startBetting to be TRUE:
+   - "Start Betting" text MUST be clearly visible in the interface
+   - AND the timer MUST show between 0-15 seconds
 
-IF "Start Betting" text is NOT visible:
-- Set startBetting to FALSE
-- Set timer to 0
+2. Set startBetting to FALSE if ANY of these conditions:
+   - "Start Betting" text is NOT visible
+   - OR timer shows MORE than 15 seconds
+   - OR timer is not present
 
-FOCUS ON: Look for "Start Betting" text first, then extract the timer number if betting text exists.
+3. When startBetting is FALSE:
+   - Set timer to 0
+
+FOCUS ON: Look for "Start Betting" text AND verify timer is 15 seconds or less. Return the exact timer value shown in the interface.
 
 Return only the JSON object with no additional text.`,
 			},
@@ -117,8 +127,22 @@ Return only the JSON object with no additional text.`,
 
 		console.log("Betting check AI response:", experimental_output);
 
+		// Adjust timer based on screenshot time
+		let adjustedTimer = experimental_output.timer;
+		let startBetting = experimental_output.startBetting;
+
+		if (startBetting && screenshotTime) {
+			adjustedTimer = experimental_output.timer - timeSinceScreenshot;
+			// If adjusted timer is negative or below 4 seconds, the betting window has passed
+			if (adjustedTimer < 4) {
+				startBetting = false;
+				adjustedTimer = 0;
+			}
+		}
+
 		res.status(200).json({
-			...experimental_output,
+			startBetting,
+			timer: adjustedTimer,
 			balance: newBalance,
 		});
 	} catch (error) {
