@@ -61,7 +61,7 @@ export default async function handler(
 
 		// Atomically decrement balance by 1
 		const userRecord = await pb.collection("autobet").update(id, {
-			"balance+": -3,
+			"balance+": -1,
 		});
 
 		const newBalance = userRecord.balance;
