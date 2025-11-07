@@ -6,7 +6,7 @@ class PocketBaseSingleton {
 
 	static async getInstance(): Promise<PocketBase> {
 		if (!this.instance) {
-			this.instance = new PocketBase("https://db.serpanal.com/");
+			this.instance = new PocketBase("https://autobetdb.igamingtech.site/");
 			// Disable auto cancellation to prevent AbortError
 			this.instance.autoCancellation(false);
 		}
