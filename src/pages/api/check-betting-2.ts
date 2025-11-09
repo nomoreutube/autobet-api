@@ -100,8 +100,8 @@ export default async function handler(
 		});
 
 		// Adjust timer based on screenshot time
-		let timer = experimental_output.timer;
-		let startBetting = experimental_output.startBetting;
+		const timer = experimental_output.timer;
+		const startBetting = experimental_output.startBetting;
 
 		return res.status(200).json({
 			startBetting,
