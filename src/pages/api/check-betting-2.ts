@@ -14,7 +14,6 @@ type BettingResponse = {
 type BettingRequest = {
 	image: string; // base64 string
 	id: string; // user id
-	screenshotTime?: number; // timestamp when screenshot was taken
 };
 
 export default async function handler(
@@ -34,7 +33,7 @@ export default async function handler(
 		return res.status(405).json({ error: "Method not allowed" });
 	}
 
-	const { image, id, screenshotTime }: BettingRequest = req.body;
+	const { image, id }: BettingRequest = req.body;
 
 	if (!image) {
 		return res.status(400).json({ error: "Image is required" });
