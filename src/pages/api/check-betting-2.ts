@@ -35,11 +35,20 @@ export default async function handler(
 
 	const { image, id }: BettingRequest = req.body;
 
+	console.log("[check-betting-2] API called", {
+		userId: id,
+		hasImage: !!image,
+		imageLength: image?.length || 0,
+		timestamp: new Date().toISOString(),
+	});
+
 	if (!image) {
+		console.log("[check-betting-2] Error: Image missing");
 		return res.status(400).json({ error: "Image is required" });
 	}
 
 	if (!id) {
+		console.log("[check-betting-2] Error: User ID missing");
 		return res.status(400).json({ error: "User ID is required" });
 	}
 
@@ -49,22 +58,29 @@ export default async function handler(
 
 		// Check if user exists
 		const userExists = await PocketBaseSingleton.checkUserExists(id);
+		console.log("[check-betting-2] User exists check:", { userId: id, exists: userExists });
+
 		if (!userExists) {
+			console.log("[check-betting-2] Error: User not found");
 			return res.status(404).json({ error: "User not found" });
 		}
 
 		// Get current user record to check balance
 		const currentUser = await pb.collection("autobet").getOne(id);
+		console.log("[check-betting-2] Current user balance:", { userId: id, balance: currentUser.balance });
+
 		if (currentUser.balance <= 0) {
+			console.log("[check-betting-2] Error: Insufficient balance", { balance: currentUser.balance });
 			return res.status(400).json({ error: "Insufficient balance" });
 		}
 
-		// Atomically decrement balance by 1
+		// Atomically decrement balance by 2
 		const userRecord = await pb.collection("autobet").update(id, {
 			"balance+": -2,
 		});
 
 		const newBalance = userRecord.balance;
+		console.log("[check-betting-2] Balance deducted:", { oldBalance: currentUser.balance, newBalance, deducted: 2 });
 
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
@@ -88,6 +104,8 @@ export default async function handler(
 			},
 		];
 
+		console.log("[check-betting-2] Calling AI model...", { model: "qwen/qwen3-vl-8b-instruct" });
+
 		const { experimental_output } = await generateText({
 			model: openrouter("qwen/qwen3-vl-8b-instruct"),
 			messages,
@@ -99,17 +117,24 @@ export default async function handler(
 			}),
 		});
 
+		console.log("[check-betting-2] AI model response:", experimental_output);
+
 		// Adjust timer based on screenshot time
 		const timer = experimental_output.timer;
 		const startBetting = experimental_output.startBetting;
 
-		return res.status(200).json({
+		const response = {
 			startBetting,
 			timer: Number(timer.toFixed(1)),
 			balance: newBalance,
-		});
+		};
+
+		console.log("[check-betting-2] Sending response:", response);
+
+		return res.status(200).json(response);
 	} catch (error) {
-		console.error("Betting check API error:", error);
+		console.error("[check-betting-2] Error:", error);
+		console.error("[check-betting-2] Error stack:", error instanceof Error ? error.stack : "No stack trace");
 		return res.status(500).json({ error: "Failed to check betting status" });
 	}
 }
