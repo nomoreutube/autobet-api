@@ -89,7 +89,7 @@ export default async function handler(
 		];
 
 		const { experimental_output } = await generateText({
-			model: openrouter("openai/gpt-4.1"),
+			model: openrouter("qwen/qwen3-vl-8b-instruct"),
 			messages,
 			experimental_output: Output.object({
 				schema: z.object({
