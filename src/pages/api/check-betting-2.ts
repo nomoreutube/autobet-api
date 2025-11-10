@@ -58,7 +58,10 @@ export default async function handler(
 
 		// Check if user exists
 		const userExists = await PocketBaseSingleton.checkUserExists(id);
-		console.log("[check-betting-2] User exists check:", { userId: id, exists: userExists });
+		console.log("[check-betting-2] User exists check:", {
+			userId: id,
+			exists: userExists,
+		});
 
 		if (!userExists) {
 			console.log("[check-betting-2] Error: User not found");
@@ -67,20 +70,29 @@ export default async function handler(
 
 		// Get current user record to check balance
 		const currentUser = await pb.collection("autobet").getOne(id);
-		console.log("[check-betting-2] Current user balance:", { userId: id, balance: currentUser.balance });
+		console.log("[check-betting-2] Current user balance:", {
+			userId: id,
+			balance: currentUser.balance,
+		});
 
 		if (currentUser.balance <= 0) {
-			console.log("[check-betting-2] Error: Insufficient balance", { balance: currentUser.balance });
+			console.log("[check-betting-2] Error: Insufficient balance", {
+				balance: currentUser.balance,
+			});
 			return res.status(400).json({ error: "Insufficient balance" });
 		}
 
 		// Atomically decrement balance by 2
 		const userRecord = await pb.collection("autobet").update(id, {
-			"balance+": -2,
+			"balance+": -1.5,
 		});
 
 		const newBalance = userRecord.balance;
-		console.log("[check-betting-2] Balance deducted:", { oldBalance: currentUser.balance, newBalance, deducted: 2 });
+		console.log("[check-betting-2] Balance deducted:", {
+			oldBalance: currentUser.balance,
+			newBalance,
+			deducted: 2,
+		});
 
 		const openrouter = createOpenRouter({
 			apiKey: process.env.OPENROUTER_API_KEY,
@@ -104,7 +116,9 @@ export default async function handler(
 			},
 		];
 
-		console.log("[check-betting-2] Calling AI model...", { model: "qwen/qwen3-vl-8b-instruct" });
+		console.log("[check-betting-2] Calling AI model...", {
+			model: "qwen/qwen3-vl-8b-instruct",
+		});
 
 		const { experimental_output } = await generateText({
 			model: openrouter("qwen/qwen3-vl-8b-instruct"),
@@ -134,7 +148,10 @@ export default async function handler(
 		return res.status(200).json(response);
 	} catch (error) {
 		console.error("[check-betting-2] Error:", error);
-		console.error("[check-betting-2] Error stack:", error instanceof Error ? error.stack : "No stack trace");
+		console.error(
+			"[check-betting-2] Error stack:",
+			error instanceof Error ? error.stack : "No stack trace"
+		);
 		return res.status(500).json({ error: "Failed to check betting status" });
 	}
 }
